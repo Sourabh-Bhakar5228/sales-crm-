@@ -1,6 +1,3 @@
-import fetch from "node-fetch";
-import FormData from "form-data";
-
 const BASE_URL = "http://localhost:5000/api";
 
 const login = async (email, password) => {
@@ -73,17 +70,34 @@ const runE2ETest = async () => {
   console.log("\n4️⃣ [VIGILANCE] Uploading audio and verifying lead...");
   const vigilance = await login("vigilance@vibhanu.com", "Vibhanu@123");
 
+  const sampleRate = 8000;
+  const dataSize = 8000; // 1 second
+  const wavBuffer = Buffer.alloc(44 + dataSize);
+  wavBuffer.write("RIFF", 0);
+  wavBuffer.writeUInt32LE(36 + dataSize, 4);
+  wavBuffer.write("WAVE", 8);
+  wavBuffer.write("fmt ", 12);
+  wavBuffer.writeUInt32LE(16, 16);
+  wavBuffer.writeUInt16LE(1, 20); // PCM
+  wavBuffer.writeUInt16LE(1, 22); // Mono
+  wavBuffer.writeUInt32LE(sampleRate, 24);
+  wavBuffer.writeUInt32LE(sampleRate, 28);
+  wavBuffer.writeUInt16LE(1, 32);
+  wavBuffer.writeUInt16LE(8, 34);
+  wavBuffer.write("data", 36);
+  wavBuffer.writeUInt32LE(dataSize, 40);
+  for (let i = 0; i < dataSize; i++) {
+    const sample = Math.floor(128 + 90 * Math.sin((2 * Math.PI * 440 * i) / sampleRate));
+    wavBuffer.writeUInt8(sample, 44 + i);
+  }
+
   const form = new FormData();
-  const dummyWav = Buffer.from(
-    "RIFF$\x00\x00\x00WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00D\xac\x00\x00\x88X\x01\x00\x02\x00\x10\x00data\x00\x00\x00\x00",
-    "binary"
-  );
-  form.append("audio", dummyWav, { filename: "customer-call.wav", contentType: "audio/wav" });
+  const blob = new Blob([wavBuffer], { type: "audio/wav" });
+  form.append("audio", blob, "customer-call.wav");
 
   const audioRes = await fetch(`${BASE_URL}/vigilance/${leadId}/audio`, {
     method: "POST",
     headers: {
-      ...form.getHeaders(),
       Cookie: vigilance.cookie,
     },
     body: form,
