@@ -24,13 +24,12 @@ export const connectDatabase = async (): Promise<void> => {
 
     console.log(`✅ MongoDB connected to ${conn.connection.host}/${conn.connection.name}`);
   } catch (primaryError: any) {
-    // If Windows DNS blocks SRV query, retry with direct Atlas replica set URI
-    if (primaryError?.code === "ECONNREFUSED" && primaryError?.syscall === "querySrv") {
-      console.warn("⚠️ Windows SRV query blocked. Retrying with direct Atlas replica set connection...");
+    // If optional direct fallback URI is provided in environment variables, try that
+    const directFallbackUri = process.env.MONGO_DIRECT_URI;
+    if (directFallbackUri && primaryError?.code === "ECONNREFUSED" && primaryError?.syscall === "querySrv") {
+      console.warn("⚠️ SRV query blocked. Retrying with direct connection from MONGO_DIRECT_URI...");
       try {
-        const directAtlasUri =
-          "mongodb://bhakarjaat522877_db_user:MGcQo0tMYuuCRhzS@ac-emaxd6o-shard-00-00.byhzjwv.mongodb.net:27017,ac-emaxd6o-shard-00-01.byhzjwv.mongodb.net:27017,ac-emaxd6o-shard-00-02.byhzjwv.mongodb.net:27017/vibhanu_crm?ssl=true&replicaSet=atlas-emaxd6-shard-0&authSource=admin&retryWrites=true&w=majority";
-        const conn = await mongoose.connect(directAtlasUri, {
+        const conn = await mongoose.connect(directFallbackUri, {
           serverSelectionTimeoutMS: 10000,
           autoIndex: true,
         });
