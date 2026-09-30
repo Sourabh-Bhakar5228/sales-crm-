@@ -122,6 +122,25 @@ export default function VigilanceLead() {
     setPreviewUrl(URL.createObjectURL(file));
   };
 
+  const handleLoadDemoAudio = async () => {
+    try {
+      setError("");
+      setSuccess("");
+      const res = await fetch("/sample-customer-call.wav");
+      if (!res.ok) throw new Error("Could not load sample audio");
+      const blob = await res.blob();
+      const file = new File([blob], "sample-customer-call.wav", { type: "audio/wav" });
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setSuccess("Sample test audio loaded! Click 'Upload Audio' below to upload to Cloudinary.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load sample audio");
+    }
+  };
+
   const handleSaveDetails = async (event: FormEvent) => {
     event.preventDefault();
     if (!id) return;
@@ -456,6 +475,18 @@ export default function VigilanceLead() {
           <p className="mt-2 text-[11px] text-slate-500">
             Supported formats: MP3, WAV, OGG, WEBM, M4A. Maximum file size: 20 MB.
           </p>
+
+          <div className="mt-3 flex items-center justify-center gap-2">
+            <span className="text-xs text-slate-400">or</span>
+            <button
+              type="button"
+              onClick={handleLoadDemoAudio}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition shadow-2xs"
+            >
+              <Mic size={13} />
+              Use Demo Test Audio (4s Chime)
+            </button>
+          </div>
 
           {/* Local Preview and Upload action */}
           {selectedFile && (
